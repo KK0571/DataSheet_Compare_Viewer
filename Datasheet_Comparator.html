@@ -13,6 +13,9 @@
         #search-box input { padding: 4px 8px; border: none; border-radius: 3px; width: 150px; }
         #search-box button { padding: 4px 10px; border: none; border-radius: 3px; background: #007bff; color: white; cursor: pointer; }
         #search-box button:hover { background: #0056b3; }
+        .search-option { display: flex; align-items: center; gap: 3px; cursor: pointer; font-size: 12px; color: #ccc; padding: 2px 6px; border-radius: 3px; }
+        .search-option:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .search-option input { margin: 0; cursor: pointer; }
         #container { display: flex; height: calc(100% - 40px); background: #444; gap: 8px; }
         
         /* 侧边栏样式 */
@@ -57,6 +60,9 @@
         <div><b>Datasheet Comparator</b></div>
         <div id="search-box">
             <input type="text" id="search-input" placeholder="搜索 PDF 内容...">
+            <label class="search-option" title="区分大小写"><input type="checkbox" id="search-case"> Aa</label>
+            <label class="search-option" title="全字匹配"><input type="checkbox" id="search-whole"> “”</label>
+            <label class="search-option" title="正则表达式"><input type="checkbox" id="search-regex"> .*</label>
             <button onclick="performSearch()">搜索</button>
         </div>
     </div>
@@ -273,8 +279,13 @@
 
     // 搜索功能
     async function performSearch() {
-        const query = document.getElementById('search-input').value.trim();
+        const query = document.getElementById('search-input').value;
         if (!query) return;
+
+        // 获取搜索选项
+        const caseSensitive = document.getElementById('search-case').checked;
+        const wholeWord = document.getElementById('search-whole').checked;
+        const useRegex = document.getElementById('search-regex').checked;
 
         searchResults = { left: [], right: [] };
 
@@ -289,10 +300,24 @@
                 const textContent = await page.getTextContent();
                 const pageText = textContent.items.map(item => item.str).join(' ');
                 
-                // 搜索匹配
-                const regex = new RegExp(query, 'gi');
+                // 构建搜索正则表达式
+                let searchPattern;
+                let flags = caseSensitive ? 'g' : 'gi';
+                
+                if (useRegex) {
+                    // 使用用户输入的正则表达式
+                    try {
+                        searchPattern = new RegExp(query, flags);
+                    } catch (e) {
+                        // 正则表达式无效，按普通文本搜索
+                        searchPattern = createSearchPattern(query, caseSensitive, wholeWord);
+                    }
+                } else {
+                    searchPattern = createSearchPattern(query, caseSensitive, wholeWord);
+                }
+                
                 let match;
-                while ((match = regex.exec(pageText)) !== null) {
+                while ((match = searchPattern.exec(pageText)) !== null) {
                     const start = Math.max(0, match.index - 30);
                     const end = Math.min(pageText.length, match.index + query.length + 30);
                     const snippet = pageText.substring(start, end);
@@ -340,6 +365,19 @@
         stats.textContent = `共 ${results.length} 个结果`;
     }
 
+    // 创建搜索模式
+    function createSearchPattern(query, caseSensitive, wholeWord) {
+        // 转义特殊字符
+        let pattern = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        if (wholeWord) {
+            pattern = '\\b' + pattern + '\\b';
+        }
+        
+        let flags = caseSensitive ? 'g' : 'gi';
+        return new RegExp(pattern, flags);
+    }
+
     // 高亮搜索结果
     function highlightSearchResults(query) {
         // 清除之前的高亮
@@ -349,14 +387,33 @@
 
         if (!query) return;
 
+        // 获取搜索选项
+        const caseSensitive = document.getElementById('search-case').checked;
+        const wholeWord = document.getElementById('search-whole').checked;
+        const useRegex = document.getElementById('search-regex').checked;
+
+        // 构建高亮模式
+        let highlightPattern;
+        try {
+            if (useRegex) {
+                let flags = caseSensitive ? 'g' : 'gi';
+                highlightPattern = new RegExp(query, flags);
+            } else {
+                highlightPattern = createSearchPattern(query, caseSensitive, wholeWord);
+            }
+        } catch (e) {
+            return;
+        }
+
         // 在文本层中高亮匹配的文本
         const textSpans = document.querySelectorAll('.text-layer span');
-        const regex = new RegExp(query, 'gi');
         
         textSpans.forEach(span => {
-            if (regex.test(span.textContent)) {
+            if (highlightPattern.test(span.textContent)) {
                 span.classList.add('highlight');
             }
+            // 重置 lastIndex
+            highlightPattern.lastIndex = 0;
         });
     }
 
