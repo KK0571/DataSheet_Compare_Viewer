@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Chip DataSheet Compare Viewer by KK</title>
+    <title>DataSheet Compare Viewer by KK</title>
     <script src="js/pdf.min.js"></script>
     <style>
         :root { --panel-bg: #f5f5f5; --border-color: #ccc; --sidebar-width: 250px; }
@@ -67,7 +67,7 @@
 
 <div id="toolbar">
     <div id="toolbar-left">
-        <div><b>Datasheet Comparator</b> | 拖入 PDF 到左右窗口 | 滚轮同步滚动 | Shift+滚轮单独滚动 | 拖动滚动条不联动 | Ctrl+滚轮放缩视图</div>
+        <div><b>Datasheet Comparator by KK</b> | 拖入 PDF 到左右窗口 | 滚轮同步滚动 | Shift+滚轮单独滚动 | 拖动滚动条不联动 | Ctrl+滚轮放缩视图</div>
         <div id="search-box">
             <input type="text" id="search-input" placeholder="搜索 PDF 内容...">
             <div class="search-filter-dropdown">
@@ -334,6 +334,12 @@
         }
         document.getElementById('status').innerText = `文件加载完毕: ${file.name}`;
     }
+
+    // 页面载入时默认收起侧边栏
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleSidebar('left');
+        toggleSidebar('right');
+    });
 
     // 侧边栏收展
     function toggleSidebar(side) {
