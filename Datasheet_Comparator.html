@@ -182,26 +182,26 @@
 
     // 处理滚轮事件（滚动或缩放）
     function handleWheel(event, source, target) {
-        // Ctrl + 滚轮 = 缩放
+        // Ctrl + 滚轮 = 缩放（两侧同步）
         if (event.ctrlKey) {
             event.preventDefault();
-            handleZoom(event, source);
+            handleZoomSync(event);
             return;
         }
         // 普通滚轮 = 同步滚动
         syncWheelScroll(event, source, target);
     }
 
-    // 缩放功能
-    let currentScale = { left: 1.2, right: 1.2 };
-    function handleZoom(event, panel) {
-        const side = panel.id === 'viewer-left' ? 'left' : 'right';
+    // 缩放功能（两侧同步）
+    let currentScale = 1.2;
+    function handleZoomSync(event) {
         const delta = event.deltaY > 0 ? -0.1 : 0.1;
-        const newScale = Math.max(0.5, Math.min(3.0, currentScale[side] + delta));
+        const newScale = Math.max(0.5, Math.min(3.0, currentScale + delta));
         
-        if (newScale !== currentScale[side]) {
-            currentScale[side] = newScale;
-            zoomPDF(side, newScale);
+        if (newScale !== currentScale) {
+            currentScale = newScale;
+            zoomPDF('left', newScale);
+            zoomPDF('right', newScale);
         }
     }
 
@@ -220,12 +220,11 @@
 
     // 更新状态栏缩放信息
     function updateZoomStatus() {
-        const leftScale = Math.round(currentScale.left * 100);
-        const rightScale = Math.round(currentScale.right * 100);
+        const scalePercent = Math.round(currentScale * 100);
         const status = document.getElementById('status');
         const originalText = status.innerText.split(' | ')[0];
         if (originalText && originalText !== '等待文件...') {
-            status.innerText = `${originalText} | 缩放: ${leftScale}% / ${rightScale}%`;
+            status.innerText = `${originalText} | 缩放: ${scalePercent}%`;
         }
     }
 
