@@ -13,9 +13,9 @@
         #search-box input { padding: 4px 8px; border: none; border-radius: 3px; width: 150px; }
         #search-box button { padding: 4px 10px; border: none; border-radius: 3px; background: #007bff; color: white; cursor: pointer; }
         #search-box button:hover { background: #0056b3; }
-        .search-option { display: flex; align-items: center; gap: 3px; cursor: pointer; font-size: 12px; color: #ccc; padding: 2px 6px; border-radius: 3px; }
-        .search-option:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .search-option input { margin: 0; cursor: pointer; }
+        #search-filter { padding: 4px 8px; border: none; border-radius: 3px; background: #555; color: white; cursor: pointer; font-size: 12px; }
+        #search-filter:hover { background: #666; }
+        #search-filter option { background: #444; }
         #container { display: flex; height: calc(100% - 40px); background: #444; gap: 8px; }
         
         /* 侧边栏样式 */
@@ -60,9 +60,12 @@
         <div><b>Datasheet Comparator</b> | 拖入 PDF 到左右窗口 | 滚轮同步滚动 | Shift+滚轮单独滚动 | 拖动滚动条不联动</div>
         <div id="search-box">
             <input type="text" id="search-input" placeholder="搜索 PDF 内容...">
-            <label class="search-option" title="区分大小写"><input type="checkbox" id="search-case"> Aa</label>
-            <label class="search-option" title="全字匹配"><input type="checkbox" id="search-whole"> “”</label>
-            <label class="search-option" title="正则表达式"><input type="checkbox" id="search-regex"> .*</label>
+            <select id="search-filter">
+                <option value="normal">默认</option>
+                <option value="case">区分大小写</option>
+                <option value="whole">全字匹配</option>
+                <option value="regex">正则表达式</option>
+            </select>
             <button onclick="performSearch()">搜索</button>
         </div>
     </div>
@@ -283,9 +286,10 @@
         if (!query) return;
 
         // 获取搜索选项
-        const caseSensitive = document.getElementById('search-case').checked;
-        const wholeWord = document.getElementById('search-whole').checked;
-        const useRegex = document.getElementById('search-regex').checked;
+        const filterMode = document.getElementById('search-filter').value;
+        const caseSensitive = filterMode === 'case';
+        const wholeWord = filterMode === 'whole';
+        const useRegex = filterMode === 'regex';
 
         searchResults = { left: [], right: [] };
 
@@ -388,9 +392,10 @@
         if (!query) return;
 
         // 获取搜索选项
-        const caseSensitive = document.getElementById('search-case').checked;
-        const wholeWord = document.getElementById('search-whole').checked;
-        const useRegex = document.getElementById('search-regex').checked;
+        const filterMode = document.getElementById('search-filter').value;
+        const caseSensitive = filterMode === 'case';
+        const wholeWord = filterMode === 'whole';
+        const useRegex = filterMode === 'regex';
 
         // 构建高亮模式
         let highlightPattern;
