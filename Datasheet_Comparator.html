@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Chip DataSheet Diff Viewer - 第一性原理版</title>
+    <title>Chip DataSheet Compare Viewer by KK</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         :root { --panel-bg: #f5f5f5; --border-color: #ccc; }
@@ -10,6 +10,12 @@
         #toolbar { height: 40px; background: #333; color: white; display: flex; align-items: center; padding: 0 20px; font-size: 14px; justify-content: space-between; }
         #container { display: flex; height: calc(100% - 40px); background: #888; gap: 4px; }
         .viewer-panel { flex: 1; overflow-y: auto; background: var(--panel-bg); position: relative; display: flex; flex-direction: column; align-items: center; }
+        .viewer-panel::-webkit-scrollbar { width: 12px; }
+        .viewer-panel::-webkit-scrollbar-track { background: #ddd; }
+        .viewer-panel::-webkit-scrollbar-thumb { background: #888; border-radius: 6px; }
+        .viewer-panel::-webkit-scrollbar-thumb:hover { background: #555; }
+        #viewer-right { direction: rtl; }
+        #viewer-right > * { direction: ltr; }
         .drop-zone { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; border: 2px dashed #999; z-index: 10; background: rgba(255,255,255,0.8); }
         .canvas-wrapper { margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
         .hidden { display: none !important; }
@@ -53,8 +59,12 @@
     function isOverScrollbar(element, event) {
         const rect = element.getBoundingClientRect();
         const scrollbarWidth = element.offsetWidth - element.clientWidth;
-        // 如果鼠标位置在右侧滚动条区域（假设滚动条在右侧）
-        return event.clientX > rect.right - scrollbarWidth - 5; // 5px 容差
+        // 左侧面板：滚动条在右侧
+        if (element.id === 'viewer-left') {
+            return event.clientX > rect.right - scrollbarWidth - 5;
+        }
+        // 右侧面板：滚动条在左侧（通过 direction: rtl 实现）
+        return event.clientX < rect.left + scrollbarWidth + 5;
     }
 
     // 监听鼠标按下事件，检测是否开始拖动滚动条
