@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Chip DataSheet Compare Viewer by KK</title>
-    <script src="pdf.min.js"></script>
+    <script src="js/pdf.min.js"></script>
     <style>
         :root { --panel-bg: #f5f5f5; --border-color: #ccc; --sidebar-width: 250px; }
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: sans-serif; }
@@ -128,7 +128,7 @@
 
 <script>
     const pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
 
     let isSyncing = false;
     let isDraggingScrollbar = false;
