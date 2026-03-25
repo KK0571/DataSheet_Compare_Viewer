@@ -400,6 +400,29 @@
         return new RegExp(pattern, flags);
     }
 
+    // 创建高亮模式（用于文本层高亮）
+    function createHighlightPattern(query, caseSensitive, wholeWord, useRegex) {
+        let pattern;
+        let flags = caseSensitive ? 'g' : 'gi';
+        
+        if (useRegex) {
+            // 使用用户输入的正则，但添加单词边界限制
+            try {
+                pattern = query;
+            } catch (e) {
+                pattern = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            }
+        } else {
+            // 转义特殊字符
+            pattern = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // 添加单词边界，确保只匹配完整单词
+        pattern = '\\b' + pattern + '\\b';
+        
+        return new RegExp(pattern, flags);
+    }
+
     // 高亮搜索结果
     function highlightSearchResults(query) {
         // 清除之前的高亮
@@ -417,12 +440,7 @@
         // 构建高亮模式
         let highlightPattern;
         try {
-            if (useRegex) {
-                let flags = caseSensitive ? 'g' : 'gi';
-                highlightPattern = new RegExp(query, flags);
-            } else {
-                highlightPattern = createSearchPattern(query, caseSensitive, wholeWord);
-            }
+            highlightPattern = createHighlightPattern(query, caseSensitive, wholeWord, useRegex);
         } catch (e) {
             return;
         }
