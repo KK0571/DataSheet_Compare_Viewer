@@ -336,9 +336,41 @@
 
     // 页面载入时默认收起侧边栏
     document.addEventListener('DOMContentLoaded', () => {
-        toggleSidebar('left');
-        toggleSidebar('right');
+        collapseSidebar('left');
+        collapseSidebar('right');
     });
+
+    // 收起侧边栏
+    function collapseSidebar(side) {
+        const sidebar = document.getElementById(`sidebar-${side}`);
+        const toggleBtn = sidebar.querySelector('.sidebar-toggle');
+        if (!sidebar.classList.contains('collapsed')) {
+            sidebar.classList.add('collapsed');
+            toggleBtn.textContent = side === 'left' ? '▶' : '◀';
+        }
+    }
+
+    // 展开侧边栏
+    function expandSidebar(side) {
+        const sidebar = document.getElementById(`sidebar-${side}`);
+        const toggleBtn = sidebar.querySelector('.sidebar-toggle');
+        if (sidebar.classList.contains('collapsed')) {
+            sidebar.classList.remove('collapsed');
+            toggleBtn.textContent = side === 'left' ? '◀' : '▶';
+        }
+    }
+
+    // 搜索后自动展开侧边栏
+    function autoExpandSidebars() {
+        // 如果左侧有搜索结果，展开左侧边栏
+        if (searchResults.left && searchResults.left.length > 0) {
+            expandSidebar('left');
+        }
+        // 如果右侧有搜索结果，展开右侧边栏
+        if (searchResults.right && searchResults.right.length > 0) {
+            expandSidebar('right');
+        }
+    }
 
     // 侧边栏收展
     function toggleSidebar(side) {
@@ -413,6 +445,9 @@
 
         // 高亮匹配的文本
         highlightSearchResults(query);
+        
+        // 自动展开侧边栏
+        autoExpandSidebars();
     }
 
     // 显示搜索结果
