@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Chip DataSheet Compare Viewer by KK</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="pdf.min.js"></script>
     <style>
         :root { --panel-bg: #f5f5f5; --border-color: #ccc; --sidebar-width: 250px; }
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: sans-serif; }
@@ -67,7 +67,7 @@
 
 <div id="toolbar">
     <div id="toolbar-left">
-        <div><b>Datasheet Comparator</b> | 拖入 PDF 到左右窗口 | 滚轮同步滚动 | Shift+滚轮单独滚动 | 拖动滚动条不联动</div>
+        <div><b>Datasheet Comparator</b> | 拖入 PDF 到左右窗口 | 滚轮同步滚动 | Shift+滚轮单独滚动 | 拖动滚动条不联动 | Ctrl+滚轮放缩视图</div>
         <div id="search-box">
             <input type="text" id="search-input" placeholder="搜索 PDF 内容...">
             <div class="search-filter-dropdown">
@@ -128,7 +128,7 @@
 
 <script>
     const pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
 
     let isSyncing = false;
     let isDraggingScrollbar = false;
