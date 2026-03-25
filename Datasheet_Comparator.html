@@ -13,10 +13,19 @@
         #search-box input { padding: 4px 8px; border: none; border-radius: 3px; width: 150px; }
         #search-box button { padding: 4px 10px; border: none; border-radius: 3px; background: #007bff; color: white; cursor: pointer; }
         #search-box button:hover { background: #0056b3; }
-        .search-options { display: flex; align-items: center; gap: 8px; padding: 2px 8px; background: #444; border-radius: 3px; }
-        .search-option { display: flex; align-items: center; gap: 3px; cursor: pointer; font-size: 11px; color: #ccc; }
-        .search-option:hover { color: #fff; }
-        .search-option input { margin: 0; cursor: pointer; }
+        .search-filter-dropdown { position: relative; display: inline-block; }
+        .search-filter-btn { padding: 4px 10px; border: none; border-radius: 3px; background: #555; color: white; cursor: pointer; font-size: 12px; }
+        .search-filter-btn:hover { background: #666; }
+        .search-filter-btn.active { background: #007bff; }
+        .search-filter-menu { display: none; position: absolute; top: 100%; left: 0; margin-top: 4px; background: #444; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; min-width: 120px; padding: 5px 0; }
+        .search-filter-menu.show { display: block; }
+        .search-filter-item { padding: 8px 15px; cursor: pointer; font-size: 12px; color: #ddd; display: flex; align-items: center; gap: 8px; }
+        .search-filter-item:hover { background: #555; }
+        .search-filter-item.selected { background: #007bff; color: white; }
+        .search-filter-item .check { visibility: hidden; width: 14px; }
+        .search-filter-item.selected .check { visibility: visible; }
+        .search-filter-tags { display: flex; align-items: center; gap: 5px; }
+        .filter-tag { background: #007bff; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; }
         #container { display: flex; height: calc(100% - 40px); background: #444; gap: 8px; }
         
         /* 侧边栏样式 */
@@ -61,11 +70,21 @@
         <div><b>Datasheet Comparator</b> | 拖入 PDF 到左右窗口 | 滚轮同步滚动 | Shift+滚轮单独滚动 | 拖动滚动条不联动</div>
         <div id="search-box">
             <input type="text" id="search-input" placeholder="搜索 PDF 内容...">
-            <div class="search-options">
-                <label class="search-option" title="区分大小写"><input type="checkbox" id="search-case"> Aa</label>
-                <label class="search-option" title="全字匹配"><input type="checkbox" id="search-whole"> “”</label>
-                <label class="search-option" title="正则表达式"><input type="checkbox" id="search-regex"> .*</label>
+            <div class="search-filter-dropdown">
+                <button class="search-filter-btn" id="search-filter-btn" onclick="toggleFilterMenu()">过滤 ▼</button>
+                <div class="search-filter-menu" id="search-filter-menu">
+                    <div class="search-filter-item" data-value="case" onclick="toggleFilter(this)">
+                        <span class="check">✓</span> 区分大小写
+                    </div>
+                    <div class="search-filter-item" data-value="whole" onclick="toggleFilter(this)">
+                        <span class="check">✓</span> 全字匹配
+                    </div>
+                    <div class="search-filter-item" data-value="regex" onclick="toggleFilter(this)">
+                        <span class="check">✓</span> 正则表达式
+                    </div>
+                </div>
             </div>
+            <div class="search-filter-tags" id="filter-tags"></div>
             <button onclick="performSearch()">搜索</button>
         </div>
     </div>
@@ -286,9 +305,9 @@
         if (!query) return;
 
         // 获取搜索选项
-        const caseSensitive = document.getElementById('search-case').checked;
-        const wholeWord = document.getElementById('search-whole').checked;
-        const useRegex = document.getElementById('search-regex').checked;
+        const caseSensitive = document.querySelector('.search-filter-item[data-value="case"]').classList.contains('selected');
+        const wholeWord = document.querySelector('.search-filter-item[data-value="whole"]').classList.contains('selected');
+        const useRegex = document.querySelector('.search-filter-item[data-value="regex"]').classList.contains('selected');
 
         searchResults = { left: [], right: [] };
 
@@ -391,9 +410,9 @@
         if (!query) return;
 
         // 获取搜索选项
-        const caseSensitive = document.getElementById('search-case').checked;
-        const wholeWord = document.getElementById('search-whole').checked;
-        const useRegex = document.getElementById('search-regex').checked;
+        const caseSensitive = document.querySelector('.search-filter-item[data-value="case"]').classList.contains('selected');
+        const wholeWord = document.querySelector('.search-filter-item[data-value="whole"]').classList.contains('selected');
+        const useRegex = document.querySelector('.search-filter-item[data-value="regex"]').classList.contains('selected');
 
         // 构建高亮模式
         let highlightPattern;
@@ -445,6 +464,46 @@
             performSearch();
         }
     });
+
+    // 切换过滤菜单显示
+    function toggleFilterMenu() {
+        const menu = document.getElementById('search-filter-menu');
+        menu.classList.toggle('show');
+    }
+
+    // 点击外部关闭菜单
+    document.addEventListener('click', (e) => {
+        const dropdown = document.querySelector('.search-filter-dropdown');
+        if (!dropdown.contains(e.target)) {
+            document.getElementById('search-filter-menu').classList.remove('show');
+        }
+    });
+
+    // 切换过滤选项
+    function toggleFilter(element) {
+        element.classList.toggle('selected');
+        updateFilterTags();
+    }
+
+    // 更新过滤标签显示
+    function updateFilterTags() {
+        const tagsContainer = document.getElementById('filter-tags');
+        const selectedItems = document.querySelectorAll('.search-filter-item.selected');
+        const filterNames = {
+            'case': 'Aa',
+            'whole': '“”',
+            'regex': '.*'
+        };
+        
+        tagsContainer.innerHTML = '';
+        selectedItems.forEach(item => {
+            const value = item.getAttribute('data-value');
+            const tag = document.createElement('span');
+            tag.className = 'filter-tag';
+            tag.textContent = filterNames[value];
+            tagsContainer.appendChild(tag);
+        });
+    }
 </script>
 </body>
 </html>
