@@ -13,9 +13,10 @@
         #search-box input { padding: 4px 8px; border: none; border-radius: 3px; width: 150px; }
         #search-box button { padding: 4px 10px; border: none; border-radius: 3px; background: #007bff; color: white; cursor: pointer; }
         #search-box button:hover { background: #0056b3; }
-        #search-filter { padding: 4px 8px; border: none; border-radius: 3px; background: #555; color: white; cursor: pointer; font-size: 12px; }
-        #search-filter:hover { background: #666; }
-        #search-filter option { background: #444; }
+        .search-options { display: flex; align-items: center; gap: 8px; padding: 2px 8px; background: #444; border-radius: 3px; }
+        .search-option { display: flex; align-items: center; gap: 3px; cursor: pointer; font-size: 11px; color: #ccc; }
+        .search-option:hover { color: #fff; }
+        .search-option input { margin: 0; cursor: pointer; }
         #container { display: flex; height: calc(100% - 40px); background: #444; gap: 8px; }
         
         /* 侧边栏样式 */
@@ -60,12 +61,11 @@
         <div><b>Datasheet Comparator</b> | 拖入 PDF 到左右窗口 | 滚轮同步滚动 | Shift+滚轮单独滚动 | 拖动滚动条不联动</div>
         <div id="search-box">
             <input type="text" id="search-input" placeholder="搜索 PDF 内容...">
-            <select id="search-filter">
-                <option value="normal">默认</option>
-                <option value="case">区分大小写</option>
-                <option value="whole">全字匹配</option>
-                <option value="regex">正则表达式</option>
-            </select>
+            <div class="search-options">
+                <label class="search-option" title="区分大小写"><input type="checkbox" id="search-case"> Aa</label>
+                <label class="search-option" title="全字匹配"><input type="checkbox" id="search-whole"> “”</label>
+                <label class="search-option" title="正则表达式"><input type="checkbox" id="search-regex"> .*</label>
+            </div>
             <button onclick="performSearch()">搜索</button>
         </div>
     </div>
@@ -286,10 +286,9 @@
         if (!query) return;
 
         // 获取搜索选项
-        const filterMode = document.getElementById('search-filter').value;
-        const caseSensitive = filterMode === 'case';
-        const wholeWord = filterMode === 'whole';
-        const useRegex = filterMode === 'regex';
+        const caseSensitive = document.getElementById('search-case').checked;
+        const wholeWord = document.getElementById('search-whole').checked;
+        const useRegex = document.getElementById('search-regex').checked;
 
         searchResults = { left: [], right: [] };
 
@@ -392,10 +391,9 @@
         if (!query) return;
 
         // 获取搜索选项
-        const filterMode = document.getElementById('search-filter').value;
-        const caseSensitive = filterMode === 'case';
-        const wholeWord = filterMode === 'whole';
-        const useRegex = filterMode === 'regex';
+        const caseSensitive = document.getElementById('search-case').checked;
+        const wholeWord = document.getElementById('search-whole').checked;
+        const useRegex = document.getElementById('search-regex').checked;
 
         // 构建高亮模式
         let highlightPattern;
