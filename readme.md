@@ -1,4 +1,5 @@
-# Chip DataSheet Diff Viewer (芯片规格书比对工具)
+# Chip DataSheet Compare Viewer
+ (芯片规格书比对工具)
 
 ## 1. 项目背景与初衷
 在硬件工程开发中，对比两款相似芯片（如 Pin-to-Pin 替代料或同类竞争型号）的参数是高频且枯燥的任务。

@@ -205,60 +205,16 @@
         }
     }
 
-    // 重新渲染 PDF 并应用缩放
-    async function zoomPDF(side, scale) {
-        const pdf = pdfDocuments[side];
-        if (!pdf) return;
-        
+    // 快速缩放 - 使用 CSS transform 缩放已渲染的内容
+    function zoomPDF(side, scale) {
         const container = document.getElementById(`content-${side}`);
-        const scrollRatio = container.parentElement.scrollTop / container.parentElement.scrollHeight;
+        if (!container) return;
         
-        container.innerHTML = '';
+        // 使用 CSS transform 缩放整个内容容器
+        container.style.transformOrigin = 'top center';
+        container.style.transform = `scale(${scale / 1.2})`;
         
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-            const viewport = page.getViewport({ scale: scale });
-
-            const wrapper = document.createElement('div');
-            wrapper.className = 'canvas-wrapper';
-            wrapper.style.width = viewport.width + 'px';
-            wrapper.style.height = viewport.height + 'px';
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-
-            wrapper.appendChild(canvas);
-            container.appendChild(wrapper);
-
-            await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-            // 添加文本层
-            const textContent = await page.getTextContent();
-            const textLayerDiv = document.createElement('div');
-            textLayerDiv.className = 'text-layer';
-            textLayerDiv.style.width = viewport.width + 'px';
-            textLayerDiv.style.height = viewport.height + 'px';
-            wrapper.appendChild(textLayerDiv);
-
-            textContent.items.forEach(item => {
-                const span = document.createElement('span');
-                span.textContent = item.str;
-                const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-                const fontHeight = Math.hypot(tx[0], tx[1]);
-                const fontWidth = Math.hypot(tx[2], tx[3]);
-                span.style.fontSize = fontHeight + 'px';
-                span.style.transform = `scaleX(${fontWidth / fontHeight})`;
-                span.style.left = tx[4] + 'px';
-                span.style.top = tx[5] - fontHeight + 'px';
-                textLayerDiv.appendChild(span);
-            });
-        }
-        
-        // 恢复滚动位置
-        container.parentElement.scrollTop = scrollRatio * container.parentElement.scrollHeight;
-        
-        // 更新状态栏显示缩放比例
+        // 更新状态栏
         updateZoomStatus();
     }
 
