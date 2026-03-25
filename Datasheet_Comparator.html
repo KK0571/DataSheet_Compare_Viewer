@@ -5,10 +5,34 @@
     <title>Chip DataSheet Compare Viewer by KK</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
-        :root { --panel-bg: #f5f5f5; --border-color: #ccc; }
+        :root { --panel-bg: #f5f5f5; --border-color: #ccc; --sidebar-width: 250px; }
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: sans-serif; }
         #toolbar { height: 40px; background: #333; color: white; display: flex; align-items: center; padding: 0 20px; font-size: 14px; justify-content: space-between; }
+        #toolbar-left { display: flex; align-items: center; gap: 15px; }
+        #search-box { display: flex; align-items: center; gap: 5px; }
+        #search-box input { padding: 4px 8px; border: none; border-radius: 3px; width: 150px; }
+        #search-box button { padding: 4px 10px; border: none; border-radius: 3px; background: #007bff; color: white; cursor: pointer; }
+        #search-box button:hover { background: #0056b3; }
         #container { display: flex; height: calc(100% - 40px); background: #444; gap: 8px; }
+        
+        /* 侧边栏样式 */
+        .sidebar { width: var(--sidebar-width); background: #2d2d2d; color: #ddd; display: flex; flex-direction: column; transition: width 0.3s ease; overflow: hidden; }
+        .sidebar.collapsed { width: 30px; }
+        .sidebar-header { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #3d3d3d; border-bottom: 1px solid #555; }
+        .sidebar.collapsed .sidebar-header { justify-content: center; padding: 10px 5px; }
+        .sidebar-title { font-weight: bold; font-size: 13px; white-space: nowrap; }
+        .sidebar.collapsed .sidebar-title { display: none; }
+        .sidebar-toggle { background: none; border: none; color: #ddd; cursor: pointer; font-size: 12px; padding: 2px 5px; }
+        .sidebar-toggle:hover { color: #fff; }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 10px; }
+        .sidebar.collapsed .sidebar-content { display: none; }
+        .search-result-item { padding: 8px; margin-bottom: 5px; background: #3d3d3d; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .search-result-item:hover { background: #4d4d4d; }
+        .search-result-page { color: #007bff; font-weight: bold; }
+        .search-result-text { color: #aaa; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .search-stats { padding: 10px; font-size: 12px; color: #888; border-top: 1px solid #555; }
+        .sidebar.collapsed .search-stats { display: none; }
+        
         .viewer-panel { flex: 1; overflow-y: auto; background: var(--panel-bg); position: relative; display: flex; flex-direction: column; align-items: center; }
         .viewer-panel::-webkit-scrollbar { width: 16px; }
         .viewer-panel::-webkit-scrollbar-track { background: #e0e0e0; }
@@ -17,18 +41,41 @@
         #viewer-right { direction: rtl; }
         #viewer-right > * { direction: ltr; }
         .drop-zone { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; border: 2px dashed #999; z-index: 10; background: rgba(255,255,255,0.8); }
-        .canvas-wrapper { margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .canvas-wrapper { margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: relative; }
+        .text-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; line-height: 1; }
+        .text-layer span { position: absolute; color: transparent; cursor: text; transform-origin: 0% 0%; }
+        .text-layer span::selection { background: rgba(0, 123, 255, 0.3); }
+        .text-layer .highlight { background: rgba(255, 255, 0, 0.4); border-radius: 2px; }
         .hidden { display: none !important; }
+        .no-results { text-align: center; color: #888; padding: 20px; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div id="toolbar">
-    <div><b>Datasheet Comparator</b> | 拖入 PDF 到左右窗口 | 滚轮同步滚动 | Shift+滚轮单独滚动 | 拖动滚动条不联动</div>
+    <div id="toolbar-left">
+        <div><b>Datasheet Comparator</b></div>
+        <div id="search-box">
+            <input type="text" id="search-input" placeholder="搜索 PDF 内容...">
+            <button onclick="performSearch()">搜索</button>
+        </div>
+    </div>
     <div id="status">等待文件...</div>
 </div>
 
 <div id="container">
+    <!-- 左侧边栏 -->
+    <div id="sidebar-left" class="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-title">左侧搜索结果</span>
+            <button class="sidebar-toggle" onclick="toggleSidebar('left')">◀</button>
+        </div>
+        <div class="sidebar-content" id="sidebar-content-left">
+            <div class="no-results">暂无搜索结果</div>
+        </div>
+        <div class="search-stats" id="search-stats-left"></div>
+    </div>
+    
     <div id="viewer-left" class="viewer-panel">
         <div id="drop-left" class="drop-zone">拖入芯片 A 规格书</div>
         <div id="content-left"></div>
@@ -36,6 +83,18 @@
     <div id="viewer-right" class="viewer-panel">
         <div id="drop-right" class="drop-zone">拖入芯片 B 规格书</div>
         <div id="content-right"></div>
+    </div>
+    
+    <!-- 右侧边栏 -->
+    <div id="sidebar-right" class="sidebar">
+        <div class="sidebar-header">
+            <button class="sidebar-toggle" onclick="toggleSidebar('right')">▶</button>
+            <span class="sidebar-title">右侧搜索结果</span>
+        </div>
+        <div class="sidebar-content" id="sidebar-content-right">
+            <div class="no-results">暂无搜索结果</div>
+        </div>
+        <div class="search-stats" id="search-stats-right"></div>
     </div>
 </div>
 
@@ -46,6 +105,8 @@
     let isSyncing = false;
     let isDraggingScrollbar = false;
     let scrollbarDragSource = null;
+    let pdfDocuments = { left: null, right: null };
+    let searchResults = { left: [], right: [] };
 
     // 初始化拖拽控制
     setupDropZone('left');
@@ -148,6 +209,7 @@
         const url = URL.createObjectURL(file);
         const loadingTask = pdfjsLib.getDocument(url);
         const pdf = await loadingTask.promise;
+        pdfDocuments[side] = pdf;
         const container = document.getElementById(`content-${side}`);
         container.innerHTML = ''; // 清空之前的内容
 
@@ -158,6 +220,8 @@
 
             const wrapper = document.createElement('div');
             wrapper.className = 'canvas-wrapper';
+            wrapper.style.width = viewport.width + 'px';
+            wrapper.style.height = viewport.height + 'px';
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
@@ -166,10 +230,161 @@
             wrapper.appendChild(canvas);
             container.appendChild(wrapper);
 
+            // 渲染 Canvas
             await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+            // 添加文本层以支持搜索和选中
+            const textContent = await page.getTextContent();
+            const textLayerDiv = document.createElement('div');
+            textLayerDiv.className = 'text-layer';
+            textLayerDiv.style.width = viewport.width + 'px';
+            textLayerDiv.style.height = viewport.height + 'px';
+            wrapper.appendChild(textLayerDiv);
+
+            // 渲染文本层
+            textContent.items.forEach(item => {
+                const span = document.createElement('span');
+                span.textContent = item.str;
+                const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+                const fontHeight = Math.hypot(tx[0], tx[1]);
+                const fontWidth = Math.hypot(tx[2], tx[3]);
+                span.style.fontSize = fontHeight + 'px';
+                span.style.transform = `scaleX(${fontWidth / fontHeight})`;
+                span.style.left = tx[4] + 'px';
+                span.style.top = tx[5] - fontHeight + 'px';
+                textLayerDiv.appendChild(span);
+            });
         }
         document.getElementById('status').innerText = `文件加载完毕: ${file.name}`;
     }
+
+    // 侧边栏收展
+    function toggleSidebar(side) {
+        const sidebar = document.getElementById(`sidebar-${side}`);
+        const toggleBtn = sidebar.querySelector('.sidebar-toggle');
+        sidebar.classList.toggle('collapsed');
+        
+        if (sidebar.classList.contains('collapsed')) {
+            toggleBtn.textContent = side === 'left' ? '▶' : '◀';
+        } else {
+            toggleBtn.textContent = side === 'left' ? '◀' : '▶';
+        }
+    }
+
+    // 搜索功能
+    async function performSearch() {
+        const query = document.getElementById('search-input').value.trim();
+        if (!query) return;
+
+        searchResults = { left: [], right: [] };
+
+        for (const side of ['left', 'right']) {
+            if (!pdfDocuments[side]) continue;
+            
+            const results = [];
+            const pdf = pdfDocuments[side];
+
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                
+                // 搜索匹配
+                const regex = new RegExp(query, 'gi');
+                let match;
+                while ((match = regex.exec(pageText)) !== null) {
+                    const start = Math.max(0, match.index - 30);
+                    const end = Math.min(pageText.length, match.index + query.length + 30);
+                    const snippet = pageText.substring(start, end);
+                    
+                    results.push({
+                        pageNum: pageNum,
+                        text: snippet,
+                        matchIndex: match.index,
+                        query: query
+                    });
+                }
+            }
+
+            searchResults[side] = results;
+            displaySearchResults(side, results);
+        }
+
+        // 高亮匹配的文本
+        highlightSearchResults(query);
+    }
+
+    // 显示搜索结果
+    function displaySearchResults(side, results) {
+        const container = document.getElementById(`sidebar-content-${side}`);
+        const stats = document.getElementById(`search-stats-${side}`);
+        
+        if (results.length === 0) {
+            container.innerHTML = '<div class="no-results">未找到匹配结果</div>';
+            stats.textContent = '';
+            return;
+        }
+
+        container.innerHTML = '';
+        results.forEach((result, index) => {
+            const item = document.createElement('div');
+            item.className = 'search-result-item';
+            item.innerHTML = `
+                <div class="search-result-page">第 ${result.pageNum} 页</div>
+                <div class="search-result-text">...${escapeHtml(result.text)}...</div>
+            `;
+            item.onclick = () => jumpToResult(side, result);
+            container.appendChild(item);
+        });
+
+        stats.textContent = `共 ${results.length} 个结果`;
+    }
+
+    // 高亮搜索结果
+    function highlightSearchResults(query) {
+        // 清除之前的高亮
+        document.querySelectorAll('.text-layer .highlight').forEach(el => {
+            el.classList.remove('highlight');
+        });
+
+        if (!query) return;
+
+        // 在文本层中高亮匹配的文本
+        const textSpans = document.querySelectorAll('.text-layer span');
+        const regex = new RegExp(query, 'gi');
+        
+        textSpans.forEach(span => {
+            if (regex.test(span.textContent)) {
+                span.classList.add('highlight');
+            }
+        });
+    }
+
+    // 跳转到搜索结果
+    function jumpToResult(side, result) {
+        const panel = document.getElementById(`viewer-${side}`);
+        const content = document.getElementById(`content-${side}`);
+        const wrappers = content.querySelectorAll('.canvas-wrapper');
+        
+        if (result.pageNum <= wrappers.length) {
+            const targetWrapper = wrappers[result.pageNum - 1];
+            panel.scrollTop = targetWrapper.offsetTop;
+        }
+    }
+
+    // HTML 转义
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 回车搜索
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
 </script>
 </body>
 </html>
