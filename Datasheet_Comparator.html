@@ -39,6 +39,38 @@
         .sidebar-toggle:hover { color: #fff; }
         .sidebar-content { flex: 1; overflow-y: auto; padding: 10px; }
         .sidebar.collapsed .sidebar-content { display: none; }
+        
+        /* 页面导航栏样式 - 固定在视口底部 */
+        .page-nav { position: fixed; bottom: 20px; background: rgba(0,0,0,0.85); color: white; padding: 10px 20px; border-radius: 25px; display: none; align-items: center; gap: 12px; z-index: 1000; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); pointer-events: auto; transform: translateX(-50%); }
+        .page-nav.visible { display: flex !important; }
+        .page-nav .page-info { white-space: nowrap; }
+        .page-nav .page-total { color: #4da6ff; font-weight: bold; }
+        .page-nav .page-input { width: 60px; padding: 5px 10px; border: none; border-radius: 4px; text-align: center; font-size: 13px; }
+        .page-nav .page-btn { padding: 5px 15px; border: none; border-radius: 4px; background: #007bff; color: white; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .page-nav .page-btn:hover { background: #0056b3; }
+        
+        /* 书签标签页 */
+        .sidebar-tabs { display: flex; border-bottom: 1px solid #555; background: #3d3d3d; }
+        .sidebar.collapsed .sidebar-tabs { display: none; }
+        .sidebar-tab { flex: 1; padding: 8px; text-align: center; cursor: pointer; font-size: 12px; color: #aaa; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .sidebar-tab:hover { color: #fff; background: #4d4d4d; }
+        .sidebar-tab.active { color: #007bff; border-bottom-color: #007bff; background: #2d2d2d; }
+        .tab-content { display: none; height: 100%; overflow-y: auto; }
+        .tab-content.active { display: block; }
+        
+        /* 书签列表样式 */
+        .bookmark-list { padding: 5px 0; }
+        .bookmark-item { padding: 8px 10px; cursor: pointer; font-size: 12px; border-radius: 4px; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; transition: background 0.2s; user-select: none; }
+        .bookmark-item:hover { background: #4d4d4d; }
+        .bookmark-item:active { background: #555; }
+        .bookmark-item .bookmark-icon { font-size: 10px; color: #4da6ff; }
+        .bookmark-item .bookmark-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bookmark-item .bookmark-page { color: #007bff; font-size: 11px; background: rgba(0,123,255,0.15); padding: 2px 6px; border-radius: 3px; }
+        .bookmark-level-0 { padding-left: 10px; }
+        .bookmark-level-1 { padding-left: 25px; }
+        .bookmark-level-2 { padding-left: 40px; }
+        .bookmark-level-3 { padding-left: 55px; }
+        .no-bookmarks { text-align: center; color: #888; padding: 20px; font-size: 12px; }
         .search-result-item { padding: 8px; margin-bottom: 5px; background: #3d3d3d; border-radius: 4px; cursor: pointer; font-size: 12px; }
         .search-result-item:hover { background: #4d4d4d; }
         .search-result-page { color: #007bff; font-weight: bold; }
@@ -46,7 +78,7 @@
         .search-stats { padding: 10px; font-size: 12px; color: #888; border-top: 1px solid #555; }
         .sidebar.collapsed .search-stats { display: none; }
         
-        .viewer-panel { flex: 1; overflow-y: auto; background: var(--panel-bg); position: relative; display: flex; flex-direction: column; align-items: center; }
+        .viewer-panel { flex: 1; overflow-y: auto; background: var(--panel-bg); position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; }
         .viewer-panel::-webkit-scrollbar { width: 16px; }
         .viewer-panel::-webkit-scrollbar-track { background: #e0e0e0; }
         .viewer-panel::-webkit-scrollbar-thumb { background: #666; border-radius: 8px; border: 2px solid #e0e0e0; }
@@ -95,11 +127,20 @@
     <!-- 左侧边栏 -->
     <div id="sidebar-left" class="sidebar">
         <div class="sidebar-header">
-            <span class="sidebar-title">左侧搜索结果</span>
+            <span class="sidebar-title">左侧面板</span>
             <button class="sidebar-toggle" onclick="toggleSidebar('left')">◀</button>
         </div>
+        <div class="sidebar-tabs" id="sidebar-tabs-left">
+            <div class="sidebar-tab active" onclick="switchTab('left', 'search')">搜索</div>
+            <div class="sidebar-tab" onclick="switchTab('left', 'bookmark')">书签</div>
+        </div>
         <div class="sidebar-content" id="sidebar-content-left">
-            <div class="no-results">暂无搜索结果</div>
+            <div class="tab-content active" id="tab-search-left">
+                <div class="no-results">暂无搜索结果</div>
+            </div>
+            <div class="tab-content" id="tab-bookmark-left">
+                <div class="no-bookmarks">暂无书签</div>
+            </div>
         </div>
         <div class="search-stats" id="search-stats-left"></div>
     </div>
@@ -113,504 +154,40 @@
         <div id="content-right"></div>
     </div>
     
+    <!-- 页面导航 - 固定在视口底部 -->
+    <div class="page-nav page-nav-left" id="page-nav-left">
+        <span class="page-info">共 <span class="page-total">0</span> 页</span>
+        <input type="number" class="page-input" min="1" placeholder="跳转到">
+        <button class="page-btn" onclick="jumpToInputPage('left')">跳转</button>
+    </div>
+    <div class="page-nav page-nav-right" id="page-nav-right">
+        <span class="page-info">共 <span class="page-total">0</span> 页</span>
+        <input type="number" class="page-input" min="1" placeholder="跳转到">
+        <button class="page-btn" onclick="jumpToInputPage('right')">跳转</button>
+    </div>
+    
     <!-- 右侧边栏 -->
     <div id="sidebar-right" class="sidebar">
         <div class="sidebar-header">
             <button class="sidebar-toggle" onclick="toggleSidebar('right')">▶</button>
-            <span class="sidebar-title">右侧搜索结果</span>
+            <span class="sidebar-title">右侧面板</span>
+        </div>
+        <div class="sidebar-tabs" id="sidebar-tabs-right">
+            <div class="sidebar-tab active" onclick="switchTab('right', 'search')">搜索</div>
+            <div class="sidebar-tab" onclick="switchTab('right', 'bookmark')">书签</div>
         </div>
         <div class="sidebar-content" id="sidebar-content-right">
-            <div class="no-results">暂无搜索结果</div>
+            <div class="tab-content active" id="tab-search-right">
+                <div class="no-results">暂无搜索结果</div>
+            </div>
+            <div class="tab-content" id="tab-bookmark-right">
+                <div class="no-bookmarks">暂无书签</div>
+            </div>
         </div>
         <div class="search-stats" id="search-stats-right"></div>
     </div>
 </div>
 
-<script>
-    const pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
-
-    let isSyncing = false;
-    let isDraggingScrollbar = false;
-    let scrollbarDragSource = null;
-    let pdfDocuments = { left: null, right: null };
-    let searchResults = { left: [], right: [] };
-
-    // 初始化拖拽控制
-    setupDropZone('left');
-    setupDropZone('right');
-
-    // 同步滚动逻辑
-    const leftPanel = document.getElementById('viewer-left');
-    const rightPanel = document.getElementById('viewer-right');
-
-    // 检测是否是拖动滚动条（通过检查鼠标位置是否在滚动条区域）
-    function isOverScrollbar(element, event) {
-        const rect = element.getBoundingClientRect();
-        const scrollbarWidth = element.offsetWidth - element.clientWidth;
-        // 左侧面板：滚动条在右侧
-        if (element.id === 'viewer-left') {
-            return event.clientX > rect.right - scrollbarWidth - 5;
-        }
-        // 右侧面板：滚动条在左侧（通过 direction: rtl 实现）
-        return event.clientX < rect.left + scrollbarWidth + 5;
-    }
-
-    // 监听鼠标按下事件，检测是否开始拖动滚动条
-    leftPanel.addEventListener('mousedown', (e) => {
-        if (isOverScrollbar(leftPanel, e)) {
-            isDraggingScrollbar = true;
-            scrollbarDragSource = 'left';
-        }
-    });
-    rightPanel.addEventListener('mousedown', (e) => {
-        if (isOverScrollbar(rightPanel, e)) {
-            isDraggingScrollbar = true;
-            scrollbarDragSource = 'right';
-        }
-    });
-
-    // 鼠标释放时重置状态
-    document.addEventListener('mouseup', () => {
-        isDraggingScrollbar = false;
-        scrollbarDragSource = null;
-    });
-
-    // 滚轮滚动时两边同步
-    leftPanel.addEventListener('wheel', (e) => handleWheel(e, leftPanel, rightPanel), { passive: false });
-    rightPanel.addEventListener('wheel', (e) => handleWheel(e, rightPanel, leftPanel), { passive: false });
-
-    // 处理滚轮事件（滚动或缩放）
-    function handleWheel(event, source, target) {
-        // Ctrl + 滚轮 = 缩放（两侧同步）
-        if (event.ctrlKey) {
-            event.preventDefault();
-            handleZoomSync(event);
-            return;
-        }
-        // 普通滚轮 = 同步滚动
-        syncWheelScroll(event, source, target);
-    }
-
-    // 缩放功能（两侧同步）
-    let currentScale = 1.2;
-    function handleZoomSync(event) {
-        const delta = event.deltaY > 0 ? -0.1 : 0.1;
-        const newScale = Math.max(0.5, Math.min(3.0, currentScale + delta));
-        
-        if (newScale !== currentScale) {
-            currentScale = newScale;
-            zoomPDF('left', newScale);
-            zoomPDF('right', newScale);
-        }
-    }
-
-    // 快速缩放 - 使用 CSS transform 缩放已渲染的内容
-    function zoomPDF(side, scale) {
-        const container = document.getElementById(`content-${side}`);
-        if (!container) return;
-        
-        // 使用 CSS transform 缩放整个内容容器
-        container.style.transformOrigin = 'top center';
-        container.style.transform = `scale(${scale / 1.2})`;
-        
-        // 更新状态栏
-        updateZoomStatus();
-    }
-
-    // 更新状态栏缩放信息
-    function updateZoomStatus() {
-        const scalePercent = Math.round(currentScale * 100);
-        const status = document.getElementById('status');
-        const originalText = status.innerText.split(' | ')[0];
-        if (originalText && originalText !== '等待文件...') {
-            status.innerText = `${originalText} | 缩放: ${scalePercent}%`;
-        }
-    }
-
-    // scroll 事件：只有拖动滚动条时才触发同步（但只同步到当前活动的面板）
-    leftPanel.addEventListener('scroll', () => {
-        if (isDraggingScrollbar && scrollbarDragSource === 'left') {
-            // 拖动左侧滚动条时，右侧不跟随
-            return;
-        }
-    });
-    rightPanel.addEventListener('scroll', () => {
-        if (isDraggingScrollbar && scrollbarDragSource === 'right') {
-            // 拖动右侧滚动条时，左侧不跟随
-            return;
-        }
-    });
-
-    function syncWheelScroll(event, source, target) {
-        event.preventDefault();
-
-        // 按住 Shift 键时，只滚动当前面板
-        if (event.shiftKey) {
-            source.scrollTop += event.deltaY;
-            return;
-        }
-
-        if (isSyncing) return;
-        isSyncing = true;
-
-        // 计算新的滚动位置
-        const delta = event.deltaY;
-        const newScrollTop = source.scrollTop + delta;
-
-        // 同步到两个面板
-        source.scrollTop = newScrollTop;
-        target.scrollTop = newScrollTop;
-
-        requestAnimationFrame(() => {
-            isSyncing = false;
-        });
-    }
-
-    function setupDropZone(side) {
-        const zone = document.getElementById(`drop-${side}`);
-        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor = '#007bff'; });
-        zone.addEventListener('dragleave', () => { zone.style.borderColor = '#999'; });
-        zone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const file = e.dataTransfer.files[0];
-            if (file && file.type === 'application/pdf') {
-                zone.classList.add('hidden');
-                renderPDF(file, side);
-            }
-        });
-    }
-
-    async function renderPDF(file, side) {
-        const url = URL.createObjectURL(file);
-        const loadingTask = pdfjsLib.getDocument(url);
-        const pdf = await loadingTask.promise;
-        pdfDocuments[side] = pdf;
-        const container = document.getElementById(`content-${side}`);
-        container.innerHTML = ''; // 清空之前的内容
-
-        // 为了滚动顺滑，我们一次性渲染所有页面（注意：超大 PDF 可能影响内存，作为原型够用了）
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-            const viewport = page.getViewport({ scale: 1.2 }); // 设定一个适合的比例
-
-            const wrapper = document.createElement('div');
-            wrapper.className = 'canvas-wrapper';
-            wrapper.style.width = viewport.width + 'px';
-            wrapper.style.height = viewport.height + 'px';
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-
-            wrapper.appendChild(canvas);
-            container.appendChild(wrapper);
-
-            // 渲染 Canvas
-            await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-            // 添加文本层以支持搜索和选中
-            const textContent = await page.getTextContent();
-            const textLayerDiv = document.createElement('div');
-            textLayerDiv.className = 'text-layer';
-            textLayerDiv.style.width = viewport.width + 'px';
-            textLayerDiv.style.height = viewport.height + 'px';
-            wrapper.appendChild(textLayerDiv);
-
-            // 渲染文本层
-            textContent.items.forEach(item => {
-                const span = document.createElement('span');
-                span.textContent = item.str;
-                const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-                const fontHeight = Math.hypot(tx[0], tx[1]);
-                const fontWidth = Math.hypot(tx[2], tx[3]);
-                span.style.fontSize = fontHeight + 'px';
-                span.style.transform = `scaleX(${fontWidth / fontHeight})`;
-                span.style.left = tx[4] + 'px';
-                span.style.top = tx[5] - fontHeight + 'px';
-                textLayerDiv.appendChild(span);
-            });
-        }
-        document.getElementById('status').innerText = `文件加载完毕: ${file.name}`;
-    }
-
-    // 页面载入时默认收起侧边栏
-    document.addEventListener('DOMContentLoaded', () => {
-        collapseSidebar('left');
-        collapseSidebar('right');
-    });
-
-    // 收起侧边栏
-    function collapseSidebar(side) {
-        const sidebar = document.getElementById(`sidebar-${side}`);
-        const toggleBtn = sidebar.querySelector('.sidebar-toggle');
-        if (!sidebar.classList.contains('collapsed')) {
-            sidebar.classList.add('collapsed');
-            toggleBtn.textContent = side === 'left' ? '▶' : '◀';
-        }
-    }
-
-    // 展开侧边栏
-    function expandSidebar(side) {
-        const sidebar = document.getElementById(`sidebar-${side}`);
-        const toggleBtn = sidebar.querySelector('.sidebar-toggle');
-        if (sidebar.classList.contains('collapsed')) {
-            sidebar.classList.remove('collapsed');
-            toggleBtn.textContent = side === 'left' ? '◀' : '▶';
-        }
-    }
-
-    // 搜索后自动展开侧边栏
-    function autoExpandSidebars() {
-        // 如果左侧有搜索结果，展开左侧边栏
-        if (searchResults.left && searchResults.left.length > 0) {
-            expandSidebar('left');
-        }
-        // 如果右侧有搜索结果，展开右侧边栏
-        if (searchResults.right && searchResults.right.length > 0) {
-            expandSidebar('right');
-        }
-    }
-
-    // 侧边栏收展
-    function toggleSidebar(side) {
-        const sidebar = document.getElementById(`sidebar-${side}`);
-        const toggleBtn = sidebar.querySelector('.sidebar-toggle');
-        sidebar.classList.toggle('collapsed');
-        
-        if (sidebar.classList.contains('collapsed')) {
-            toggleBtn.textContent = side === 'left' ? '▶' : '◀';
-        } else {
-            toggleBtn.textContent = side === 'left' ? '◀' : '▶';
-        }
-    }
-
-    // 搜索功能
-    async function performSearch() {
-        const query = document.getElementById('search-input').value;
-        if (!query) return;
-
-        // 获取搜索选项
-        const caseSensitive = document.querySelector('.search-filter-item[data-value="case"]').classList.contains('selected');
-        const wholeWord = document.querySelector('.search-filter-item[data-value="whole"]').classList.contains('selected');
-        const useRegex = document.querySelector('.search-filter-item[data-value="regex"]').classList.contains('selected');
-
-        searchResults = { left: [], right: [] };
-
-        for (const side of ['left', 'right']) {
-            if (!pdfDocuments[side]) continue;
-            
-            const results = [];
-            const pdf = pdfDocuments[side];
-
-            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                const page = await pdf.getPage(pageNum);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                
-                // 构建搜索正则表达式
-                let searchPattern;
-                let flags = caseSensitive ? 'g' : 'gi';
-                
-                if (useRegex) {
-                    // 使用用户输入的正则表达式
-                    try {
-                        searchPattern = new RegExp(query, flags);
-                    } catch (e) {
-                        // 正则表达式无效，按普通文本搜索
-                        searchPattern = createSearchPattern(query, caseSensitive, wholeWord);
-                    }
-                } else {
-                    searchPattern = createSearchPattern(query, caseSensitive, wholeWord);
-                }
-                
-                let match;
-                while ((match = searchPattern.exec(pageText)) !== null) {
-                    const start = Math.max(0, match.index - 30);
-                    const end = Math.min(pageText.length, match.index + query.length + 30);
-                    const snippet = pageText.substring(start, end);
-                    
-                    results.push({
-                        pageNum: pageNum,
-                        text: snippet,
-                        matchIndex: match.index,
-                        query: query
-                    });
-                }
-            }
-
-            searchResults[side] = results;
-            displaySearchResults(side, results);
-        }
-
-        // 高亮匹配的文本
-        highlightSearchResults(query);
-        
-        // 自动展开侧边栏
-        autoExpandSidebars();
-    }
-
-    // 显示搜索结果
-    function displaySearchResults(side, results) {
-        const container = document.getElementById(`sidebar-content-${side}`);
-        const stats = document.getElementById(`search-stats-${side}`);
-        
-        if (results.length === 0) {
-            container.innerHTML = '<div class="no-results">未找到匹配结果</div>';
-            stats.textContent = '';
-            return;
-        }
-
-        container.innerHTML = '';
-        results.forEach((result, index) => {
-            const item = document.createElement('div');
-            item.className = 'search-result-item';
-            item.innerHTML = `
-                <div class="search-result-page">第 ${result.pageNum} 页</div>
-                <div class="search-result-text">...${escapeHtml(result.text)}...</div>
-            `;
-            item.onclick = () => jumpToResult(side, result);
-            container.appendChild(item);
-        });
-
-        stats.textContent = `共 ${results.length} 个结果`;
-    }
-
-    // 创建搜索模式
-    function createSearchPattern(query, caseSensitive, wholeWord) {
-        // 转义特殊字符
-        let pattern = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        
-        if (wholeWord) {
-            pattern = '\\b' + pattern + '\\b';
-        }
-        
-        let flags = caseSensitive ? 'g' : 'gi';
-        return new RegExp(pattern, flags);
-    }
-
-    // 创建高亮模式（用于文本层高亮）
-    function createHighlightPattern(query, caseSensitive, wholeWord, useRegex) {
-        let pattern;
-        let flags = caseSensitive ? 'g' : 'gi';
-        
-        if (useRegex) {
-            // 使用用户输入的正则，但添加单词边界限制
-            try {
-                pattern = query;
-            } catch (e) {
-                pattern = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            }
-        } else {
-            // 转义特殊字符
-            pattern = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-        
-        // 添加单词边界，确保只匹配完整单词
-        pattern = '\\b' + pattern + '\\b';
-        
-        return new RegExp(pattern, flags);
-    }
-
-    // 高亮搜索结果
-    function highlightSearchResults(query) {
-        // 清除之前的高亮
-        document.querySelectorAll('.text-layer .highlight').forEach(el => {
-            el.classList.remove('highlight');
-        });
-
-        if (!query) return;
-
-        // 获取搜索选项
-        const caseSensitive = document.querySelector('.search-filter-item[data-value="case"]').classList.contains('selected');
-        const wholeWord = document.querySelector('.search-filter-item[data-value="whole"]').classList.contains('selected');
-        const useRegex = document.querySelector('.search-filter-item[data-value="regex"]').classList.contains('selected');
-
-        // 构建高亮模式
-        let highlightPattern;
-        try {
-            highlightPattern = createHighlightPattern(query, caseSensitive, wholeWord, useRegex);
-        } catch (e) {
-            return;
-        }
-
-        // 在文本层中高亮匹配的文本
-        const textSpans = document.querySelectorAll('.text-layer span');
-        
-        textSpans.forEach(span => {
-            if (highlightPattern.test(span.textContent)) {
-                span.classList.add('highlight');
-            }
-            // 重置 lastIndex
-            highlightPattern.lastIndex = 0;
-        });
-    }
-
-    // 跳转到搜索结果
-    function jumpToResult(side, result) {
-        const panel = document.getElementById(`viewer-${side}`);
-        const content = document.getElementById(`content-${side}`);
-        const wrappers = content.querySelectorAll('.canvas-wrapper');
-        
-        if (result.pageNum <= wrappers.length) {
-            const targetWrapper = wrappers[result.pageNum - 1];
-            panel.scrollTop = targetWrapper.offsetTop;
-        }
-    }
-
-    // HTML 转义
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // 回车搜索
-    document.getElementById('search-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            performSearch();
-        }
-    });
-
-    // 切换过滤菜单显示
-    function toggleFilterMenu() {
-        const menu = document.getElementById('search-filter-menu');
-        menu.classList.toggle('show');
-    }
-
-    // 点击外部关闭菜单
-    document.addEventListener('click', (e) => {
-        const dropdown = document.querySelector('.search-filter-dropdown');
-        if (!dropdown.contains(e.target)) {
-            document.getElementById('search-filter-menu').classList.remove('show');
-        }
-    });
-
-    // 切换过滤选项
-    function toggleFilter(element) {
-        element.classList.toggle('selected');
-        updateFilterTags();
-    }
-
-    // 更新过滤标签显示
-    function updateFilterTags() {
-        const tagsContainer = document.getElementById('filter-tags');
-        const selectedItems = document.querySelectorAll('.search-filter-item.selected');
-        const filterNames = {
-            'case': 'Aa',
-            'whole': '“”',
-            'regex': '.*'
-        };
-        
-        tagsContainer.innerHTML = '';
-        selectedItems.forEach(item => {
-            const value = item.getAttribute('data-value');
-            const tag = document.createElement('span');
-            tag.className = 'filter-tag';
-            tag.textContent = filterNames[value];
-            tagsContainer.appendChild(tag);
-        });
-    }
-</script>
+<script src="js/app.js"></script>
 </body>
 </html>
